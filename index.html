@@ -4,34 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>투네이션 크리에이터 가이드 AI</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background: #f4f4f9; }
-        #chat-window { flex: 1; overflow-y: auto; padding: 20px; }
-        #input-area { display: flex; padding: 20px; background: white; border-top: 1px solid #ddd; }
-        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        button { margin-left: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { font-family: 'Pretendard', sans-serif; margin: 0; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; }
+        .header { background: #007bff; color: white; padding: 15px; text-align: center; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #chat-window { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 15px; border-radius: 15px; max-width: 80%; line-height: 1.5; }
+        .user { align-self: flex-end; background: #007bff; color: white; }
+        .ai { align-self: flex-start; background: white; border: 1px solid #ddd; }
+        .input-area { display: flex; padding: 20px; background: white; border-top: 1px solid #ddd; gap: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; outline: none; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:disabled { background: #ccc; }
     </style>
 </head>
 <body>
-    <div style="background:#007bff; color:white; padding:15px; text-align:center; font-weight:bold;">
-        투네이션 초보 가이드 AI 🤖
-    </div>
+    <div class="header">투네이션 초보 크리에이터 가이드 AI 🤖</div>
     <div id="chat-window">
-        <div>안녕하세요! 무엇을 도와드릴까요? (현재 설정 중입니다...)</div>
+        <div class="msg ai">안녕하세요! 투네이션 설정이 어려우신가요? 무엇이든 물어보세요!</div>
     </div>
-    <div id="input-area">
-        <input type="text" id="user-input" placeholder="질문을 입력하세요...">
-        <button onclick="sendMessage()">전송</button>
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="예: 룰렛 설정 어떻게 해?" onkeypress="if(event.keyCode==13) sendMessage()">
+        <button id="send-btn" onclick="sendMessage()">전송</button>
     </div>
 
-    <script>
-        function sendMessage() {
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // 중요: Vercel 환경변수에서 API 키를 가져오거나 테스트용으로 직접 넣을 수 있습니다.
+        // 하지만 보안을 위해 실제 배포 시에는 Vercel Dashboard의 Environment Variables를 사용하세요.
+        const API_KEY = "발급받은_API_키를_여기에_넣으세요"; 
+
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            systemInstruction: "당신은 투네이션(Toonation) 전문가입니다. 기획서 내용을 바탕으로 초보 크리에이터에게 친절하게 설명하세요. 단계별로 설명하고 마지막엔 항상 응원을 해주세요."
+        });
+
+        window.sendMessage = async function() {
             const input = document.getElementById('user-input');
+            const btn = document.getElementById('send-btn');
             const window = document.getElementById('chat-window');
-            if(!input.value) return;
-            window.innerHTML += `<div><strong>나:</strong> ${input.value}</div>`;
+            
+            if(!input.value || btn.disabled) return;
+
+            const userMsg = input.value;
+            window.innerHTML += `<div class="msg user">${userMsg}</div>`;
             input.value = '';
-            // 실제 AI 연결은 Vercel 환경변수 설정 후 가능합니다.
+            btn.disabled = true;
+
+            try {
+                const result = await model.generateContent(userMsg);
+                const response = await result.response;
+                window.innerHTML += `<div class="msg ai">${response.text()}</div>`;
+            } catch (error) {
+                window.innerHTML += `<div class="msg ai">에러가 발생했어요. API 키 설정을 확인해주세요!</div>`;
+            }
+            
+            btn.disabled = false;
+            window.scrollTop = window.scrollHeight;
         }
     </script>
 </body>
